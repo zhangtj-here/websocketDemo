@@ -1,0 +1,23 @@
+{
+  "name": "websocketDemo",
+  "version": "1.0.0",
+  "description": "this is a Websocket demo",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zhangtj-here/websocketDemo.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/zhangtj-here/websocketDemo/issues"
+  },
+  "homepage": "https://github.com/zhangtj-here/websocketDemo#readme",
+  "dependencies": {
+    "ws": "^7.4.2"
+  }
+}
