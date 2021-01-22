@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <input type="text" id="msg">
+  <button id="btn">发送</button>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    var socket = io();
+    document.getElementById('btn').addEventListener('click', function () {
+      let msg = document.getElementById('msg');
+      let value = msg.value;
+      socket.emit('chat msg', value);
+      msg.value = "";
+    })
+
+    socket.on("message", function (msg) {
+      console.log(msg)
+    })
+  </script>
+</body>
+
+</html>
