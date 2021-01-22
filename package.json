@@ -18,6 +18,8 @@
   },
   "homepage": "https://github.com/zhangtj-here/websocketDemo#readme",
   "dependencies": {
+    "express": "^4.17.1",
+    "socket.io": "^3.1.0",
     "ws": "^7.4.2"
   }
 }
