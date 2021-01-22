@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+
+<body>
+  <div id="example-1">
+    <!-- 确定用户输入的昵称 -->
+    <div v-if="isShow">
+      <label for="">昵&nbsp;&nbsp;&nbsp;称: <input type="text" placeholder="请输入昵称" v-model="name"> </label><br />
+      <label for="">房间号: <input type="text" placeholder="请输入房间号" v-model="roomID" @keyup.enter="into"></label><br>
+      <button @click="into">进入聊天室</button>
+    </div>
+
+    <div v-else>
+      <!-- 显示消息 -->
+      <ul>
+        <li v-for="item in items" :key="item.message">
+          {{ item.message }}
+        </li>
+      </ul>
+
+      <div>在线人数: {{num}}</div>
+
+      <!-- 发送消息 -->
+      <div class="ctrl">
+        <input type="text" v-model="inputValue" @keyup.enter="submit">
+        <button type="button" @click="submit">发送</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    var example1 = new Vue({
+      el: '#example-1',
+      data: {
+        isShow: true,
+        inputValue: "",
+        name: "",
+        roomID: "",
+        items: [{
+            message: 'Foo'
+          },
+          {
+            message: 'Bar'
+          }
+        ],
+        wsHandle: '',
+        num: 0,
+      },
+      mounted() {
+        const _this = this;
+        this.wsHandle = new WebSocket("ws://localhost:8000");
+        this.wsHandle.onopen = this.onOpen;
+        this.wsHandle.onmessage = this.onMessage;
+      },
+      methods: {
+        submit() {
+          this.wsHandle.send(JSON.stringify({
+            name: this.name,
+            message: this.inputValue,
+            event: "message",
+            roomId: this.roomID
+          }));
+          this.items.push({
+            message: `${this.name}: ${this.inputValue}`
+          })
+          this.inputValue = '';
+        },
+        into() {
+          if (this.name.trim() === "") {
+            alert("用户名不能为空，请输入用户名");
+            return;
+          }
+          if (this.roomID.trim() === "") {
+            alert("房间号不能为空，请输入用户名");
+            return;
+          }
+          this.wsHandle.send(JSON.stringify({
+            name: this.name,
+            event: "login",
+            roomId: this.roomID
+          }))
+          this.isShow = false;
+        },
+        onOpen: function () {
+          console.log('client is connected');
+        },
+        onMessage: function (evt) {
+          let msg = JSON.parse(evt.data);
+          if (msg.num) {
+            this.num = msg.num
+          }
+          if (msg.event === "login") {
+            this.items.push({
+              message: `欢迎${msg.name}加入聊天室`
+            })
+          } else if (msg.event === "logout") {
+            this.items.push({
+              message: `${msg.name}退出聊天室`
+            })
+          } else {
+            // 把数据推送到items中
+            if (msg.name !== this.name) {
+              this.items.push({
+                message: `${msg.name}: ${msg.message}`
+              })
+            }
+          }
+        },
+
+      }
+    })
+  </script>
+</body>
+
+</html>
