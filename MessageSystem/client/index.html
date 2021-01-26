@@ -53,12 +53,14 @@
         ],
         wsHandle: '',
         num: 0,
+        handler: "",
       },
       mounted() {
         const _this = this;
         this.wsHandle = new WebSocket("ws://localhost:8000");
         this.wsHandle.onopen = this.onOpen;
         this.wsHandle.onmessage = this.onMessage;
+        this.wsHandle.onerror = this.onClose;
       },
       methods: {
         submit() {
@@ -90,13 +92,35 @@
           this.isShow = false;
         },
         onOpen: function () {
+          // 连接创建之时
+          // 设置定时器 -> 如果超时或者服务端没有响应 ping/pong -> 断开与服务器的连接 释放资源
+
           console.log('client is connected');
+          this.checkServer();
+          // 发送鉴权token给后台, token -> express
+          /* const data = {
+            event: "auth",
+            message: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c" //localStorage cookie/session
+          };
+          // 主动鉴权
+          this.wsHandle.send(JSON.stringify(data)); */
         },
         onMessage: function (evt) {
           let msg = JSON.parse(evt.data);
+
+          if (msg.event === "heartbeat" && msg.message === "ping") { 
+            this.checkServer();
+            this.wsHandle.send(JSON.stringify({
+              event: "heartbeat",
+              message: "pong"
+            }))
+            return;
+          }
+
           if (msg.num) {
             this.num = msg.num
           }
+          
           if (msg.event === "login") {
             this.items.push({
               message: `欢迎${msg.name}加入聊天室`
@@ -114,6 +138,19 @@
             }
           }
         },
+        onClose() {
+          this.wsHandle.close();
+        },
+        checkServer() {
+          console.log("checkServer in");
+          let _this = this;
+          clearTimeout(this.handler);
+          this.handler = setTimeout(function () {
+            console.log("checkServer fail, close Websocket")
+            // 主动断开服务器端的连接
+            _this.onClose();
+          }, 5000 + 1000)
+        }
 
       }
     })
