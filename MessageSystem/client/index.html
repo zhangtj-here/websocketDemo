@@ -54,15 +54,20 @@
         wsHandle: '',
         num: 0,
         handler: "",
+        reconnect: ""
       },
       mounted() {
         const _this = this;
-        this.wsHandle = new WebSocket("ws://localhost:8000");
-        this.wsHandle.onopen = this.onOpen;
-        this.wsHandle.onmessage = this.onMessage;
-        this.wsHandle.onerror = this.onClose;
+        this.init();
+        
       },
       methods: {
+        init() {
+          this.wsHandle = new WebSocket("ws://localhost:8000");
+          this.wsHandle.onopen = this.onOpen;
+          this.wsHandle.onmessage = this.onMessage;
+          this.wsHandle.onerror = this.onError;
+        },
         submit() {
           this.wsHandle.send(JSON.stringify({
             name: this.name,
@@ -98,15 +103,31 @@
           console.log('client is connected');
           this.checkServer();
           // 发送鉴权token给后台, token -> express
-          /* const data = {
+          const data = {
             event: "auth",
-            message: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c" //localStorage cookie/session
+            message: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjoiZ29vZGVyIiwiaWF0IjoxNjExNjQwMTA1LCJleHAiOjE2MTE2NDM3MDV9.aXEQpJ61yH09IGe2Vq91v2FpOC5lrmBkrQmhovhAVOE" //localStorage cookie/session
           };
           // 主动鉴权
-          this.wsHandle.send(JSON.stringify(data)); */
+          this.wsHandle.send(JSON.stringify(data));
         },
         onMessage: function (evt) {
           let msg = JSON.parse(evt.data);
+
+          if (msg.event === "noauth") {
+            // 监测到鉴权失败
+            // RESIful 去请求token eg: login() -> token -> store 
+            console.log(msg.message);
+            // login()
+            const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjoiZ29vZGVyIiwiaWF0IjoxNjExNjUyMzIyLCJleHAiOjE2MTE2NTU5MjJ9.Lg5pL-R7jbxcLR84fU4YhitiohnDXR7svvAvoaDQURs";
+            // 鉴权失败后，重新鉴权
+            this.wsHandle.send(JSON.stringify({
+              event: "auth",
+              message: token
+            }))
+
+
+
+          }
 
           if (msg.event === "heartbeat" && msg.message === "ping") { 
             this.checkServer();
@@ -138,6 +159,15 @@
             }
           }
         },
+        onError() {
+          let _this = this;
+
+          clearTimeout(this.reconnect);
+          this.reconnect = setTimeout(() => {
+            console.log('reconnect websocket');
+            _this.init();
+          }, 1000)
+        },
         onClose() {
           this.wsHandle.close();
         },
@@ -149,6 +179,8 @@
             console.log("checkServer fail, close Websocket")
             // 主动断开服务器端的连接
             _this.onClose();
+            // 再次初始化websoket连接
+            _this.init();
           }, 5000 + 1000)
         }
 

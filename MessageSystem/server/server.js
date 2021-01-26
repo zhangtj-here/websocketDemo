@@ -1,5 +1,13 @@
 // Websoket server
 const WebSocket = require("ws");
+const jwt = require('jsonwebtoken');
+
+const token = jwt.sign({
+  data: "gooder"
+}, 'secret', {
+  expiresIn: "1h"
+});
+console.log("token is: " + token);
 
 let group = {};
 let timeInterval = 5000; // 定时去检测客户端的时长
@@ -22,10 +30,28 @@ wss.on('connection', function (ws) {
   ws.on('message', function (data) {
     let dataObj = JSON.parse(data);
 
-    /* // 鉴权机制 -> 检验token的有效性
+    // 鉴权机制 -> 检验token的有效性
     if (dataObj.event === "auth") {
-      // 拿到token
-    } */
+      // 拿到token,并且去检验时效性
+      jwt.verify(dataObj.message, 'secret', function (err, decode) {
+        if (err) {
+          console.log("auth error");
+          return;
+        } else {
+          ws.isAuth = true;
+          return;
+        }
+        console.log(JSON.stringify(decode));
+      })
+    }
+    if (!ws.isAuth) { // 拦截非鉴权的请求
+      // 去给客户端发送重新鉴权的消息
+      ws.send(JSON.stringify({
+        event: "noauth",
+        message: "please auth again, your token is expired"
+      }))
+      return;
+    }
 
     if (dataObj.event === "heartbeat" && dataObj.message === "pong") {
       ws.isAlive = true;
